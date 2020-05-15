@@ -10,7 +10,7 @@
     <properties>
         <jedis>2.9.0</jedis>
         <spring.data.redis>1.8.3.RELEASE</spring.data.redis>
-        <jackson-databind>2.8.5</jackson-databind>
+        <jackson-databind>2.9.10.4</jackson-databind>
         <jackson-databind>2.8.5</jackson-databind>
         <spring.boot.version>1.5.3.RELEASE</spring.boot.version>
         <github.global.server>github</github.global.server>
