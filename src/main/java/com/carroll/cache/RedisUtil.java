@@ -187,7 +187,11 @@ public class RedisUtil {
     }
 
     public Boolean expire(Object key, final long timeout, final TimeUnit unit) {
-        return redisTemplate.expire(key, timeout, TimeUnit.SECONDS);
+        return this.expire(null, key, timeout, unit);
+    }
+
+    public Boolean expire(String prefix, Object key, final long timeout, final TimeUnit unit) {
+        return redisTemplate.expire(dealWithKey(prefix, String.valueOf(key)), timeout, TimeUnit.SECONDS);
     }
 
     private String dealWithKey(String prefix, String key) {
