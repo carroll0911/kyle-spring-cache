@@ -11,13 +11,16 @@ package com.carroll.cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -159,6 +162,60 @@ public class RedisUtil {
     }
 
     /**
+     * 读取缓存
+     *
+     * @param key 缓存key
+     * @return 缓存内容
+     */
+    public <T> T get(final String key, Class<T> t) {
+        T result = null;
+        ValueOperations<Serializable, T> operations = redisTemplate.opsForValue();
+        result = operations.get(dealWithKey(null, key));
+        return result;
+    }
+
+    /**
+     * 批量读取缓存
+     *
+     * @param key 缓存key
+     * @return 缓存内容
+     */
+    public <T> List<T> batchGet(final String key, Class<T> t) {
+        ListOperations<Serializable, T> operations = redisTemplate.opsForList();
+        return operations.range(key, 0, -1);
+    }
+
+    /**
+     * 批量读取缓存
+     * @param key
+     * @param t
+     * @param <T>
+     * @return
+     */
+    public <T> Set<T> batchGetForZSet(final String key, Class<T> t) {
+        ZSetOperations<Serializable, T> operations = redisTemplate.opsForZSet();
+        return operations.range(key, 0, -1);
+    }
+
+    /**
+     * 批量写入缓存
+     * @param key
+     * @param t
+     * @return
+     */
+    public <T> boolean batchSet(String key, List<T> t) {
+        boolean result = false;
+        try {
+            ListOperations<Serializable, T> operations = redisTemplate.opsForList();
+            operations.leftPushAll(key, t);
+            result = true;
+        } catch (Exception e) {
+            log.error(e.getMessage(),e);
+        }
+        return result;
+    }
+
+    /**
      * 写入缓存
      *
      * @param key
@@ -187,11 +244,7 @@ public class RedisUtil {
     }
 
     public Boolean expire(Object key, final long timeout, final TimeUnit unit) {
-        return this.expire(null, key, timeout, unit);
-    }
-
-    public Boolean expire(String prefix, Object key, final long timeout, final TimeUnit unit) {
-        return redisTemplate.expire(dealWithKey(prefix, String.valueOf(key)), timeout, TimeUnit.SECONDS);
+        return redisTemplate.expire(key, timeout, TimeUnit.SECONDS);
     }
 
     private String dealWithKey(String prefix, String key) {

@@ -4,9 +4,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -40,9 +41,6 @@ public class RedisCacheIniter extends CachingConfigurerSupport {
 
     @Autowired
     private CacheRedisConfig cacheRedisConfig;
-
-    @Value("${cache.enable:true}")
-    private boolean enable = true;
 
     @Override
     @Bean
@@ -85,6 +83,8 @@ public class RedisCacheIniter extends CachingConfigurerSupport {
             shardInfo.setPassword(cacheRedisConfig.getPassword());
             jedisConnectionFactory.setUsePool(true);
             jedisConnectionFactory.setShardInfo(shardInfo);
+            jedisConnectionFactory.setHostName(cacheRedisConfig.getHost());
+            jedisConnectionFactory.setPort(cacheRedisConfig.getPort());
         }
         jedisConnectionFactory.setTimeout(cacheRedisConfig.getTimeout());
         jedisConnectionFactory.setDatabase(cacheRedisConfig.getDatabase());
@@ -108,9 +108,6 @@ public class RedisCacheIniter extends CachingConfigurerSupport {
     @Bean
     @Override
     public CacheManager cacheManager() {
-        if (!enable) {
-            return null;
-        }
         ExtendRedisCacheManager cacheManager = new ExtendRedisCacheManager(redisTemplate());
         cacheManager.setUsePrefix(cacheRedisConfig.isUsePrefix());
         if (cacheRedisConfig.isUsePrefix()) {
@@ -129,6 +126,9 @@ public class RedisCacheIniter extends CachingConfigurerSupport {
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        // 解决jackson2无法反序列化LocalDateTime的问题
+        om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        om.registerModule(new JavaTimeModule());
         jackson2JsonRedisSerializer.setObjectMapper(om);
         template.setValueSerializer(jackson2JsonRedisSerializer);
         template.afterPropertiesSet();

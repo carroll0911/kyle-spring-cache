@@ -80,14 +80,13 @@ public class CustomRedisCache extends AbstractValueAdaptingCache {
 
     public RedisCacheElement get(final RedisCacheKey cacheKey) {
         Assert.notNull(cacheKey, "CacheKey must not be null!");
-        RedisCacheElement redisCacheElement = new RedisCacheElement(cacheKey, this.fromStoreValue(this.lookup(cacheKey)));
         Boolean exists = (Boolean) this.redisOperations.execute(new RedisCallback<Boolean>() {
             @Override
             public Boolean doInRedis(RedisConnection connection) throws DataAccessException {
                 return connection.exists(cacheKey.getKeyBytes());
             }
         });
-        return !exists ? null : redisCacheElement;
+        return !exists ? null : new RedisCacheElement(cacheKey, this.fromStoreValue(this.lookup(cacheKey)));
     }
 
     @Override
